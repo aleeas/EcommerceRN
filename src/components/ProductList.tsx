@@ -118,7 +118,6 @@ const ProductList: React.FC<HomeScreenProps> = ({navigation}) => {
         searchInput.trim() !== ''
           ? `${API_URL}/search?q=${searchInput}`
           : API_URL;
-      console.log(url);
       const response = await axios.get<{products: Product[]}>(url);
       setProducts(response.data.products);
 
@@ -126,12 +125,12 @@ const ProductList: React.FC<HomeScreenProps> = ({navigation}) => {
         'ALL',
         ...new Set(response.data.products.map(product => product.category)),
       ].sort((a, b) => a.localeCompare(b));
-      if(response.data.products.length === 0){
+      if (response.data.products.length === 0) {
         setNoProductsFound(true);
-      }else{
+      } else {
         setNoProductsFound(false);
       }
-      
+
       setCategories(uniqueCategories);
       setSelectedCategory('ALL');
       setErrorMessage(null);
@@ -254,8 +253,6 @@ const ProductList: React.FC<HomeScreenProps> = ({navigation}) => {
         />
       );
   };
-
-  console.log(products);
 
   return (
     <SafeAreaView
