@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -9,44 +9,48 @@ import {
   TouchableOpacity,
   useColorScheme,
   Image,
-  TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import axios from 'axios';
-import { Icon } from 'react-native-elements';
+import {Icon} from 'react-native-elements';
 import RnvIcon from 'react-native-vector-icons/FontAwesome';
 import SplashScreen from 'react-native-splash-screen';
-import { useDispatch, useSelector } from 'react-redux';
-import { toggleFavorite } from '../store/favoritesSlice';
+import {useDispatch, useSelector} from 'react-redux';
+import {toggleFavorite} from '../store/favoritesSlice';
 import Toast from 'react-native-toast-message';
-import { addToCart, setToCart } from '../store/cartSlice';
-import { Product } from '../types/product';
-import { HomeScreenProps } from '../types/home';
-import IconMenu from '../components/IconMenu';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { ADD_TO_CART_URL, API_URL } from '../constant/common';
-import { RootState } from '../store/store';
+import {addToCart, setToCart} from '../store/cartSlice';
+import {Product} from '../types/product';
+import {HomeScreenProps} from '../types/home';
+import {ADD_TO_CART_URL, API_URL} from '../constant/common';
+import {RootState} from '../store/store';
+import SearchBar from './SearchBar';
 
-const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
+const ProductList: React.FC<HomeScreenProps> = ({navigation}) => {
   const isDarkMode = useColorScheme() === 'dark';
   const dispatch = useDispatch();
-  const favorites = useSelector((state: RootState) => state.favorites.favorites);
-  const cartItemCount = useSelector((state: RootState) => state.cart.totalProducts || 0);
+  const favorites = useSelector(
+    (state: RootState) => state.favorites.favorites,
+  );
+  const cartItemCount = useSelector(
+    (state: RootState) => state.cart.totalProducts || 0,
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchInput, setSearchInput] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [noProductsFound, setNoProductsFound] = useState<boolean>(false);
 
   const isFavourite = (id: number) =>
-    favorites.some((product: { id: number }) => product.id === id);
+    favorites.some((product: {id: number}) => product.id === id);
 
   const handleToggleFavourite = (item: Product) => {
     dispatch(toggleFavorite(item));
 
-    const message = isFavourite(item.id) ? 'Removed from favorites' : 'Added to favorites';
+    const message = isFavourite(item.id)
+      ? 'Removed from favorites'
+      : 'Added to favorites';
     Toast.show({
       text1: message,
       position: 'bottom',
@@ -65,7 +69,7 @@ const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
     const userId = 1;
     const requestBody = {
       userId: userId,
-      products: [{ id: product.id, quantity: 1 }],
+      products: [{id: product.id, quantity: 1}],
     };
 
     try {
@@ -109,15 +113,25 @@ const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const url = searchInput ? `${API_URL}/search?q=${searchInput}` : API_URL;
-      const response = await axios.get<{ products: Product[] }>(url);
+      // Use trim to check if searchInput is not just whitespace
+      const url =
+        searchInput.trim() !== ''
+          ? `${API_URL}/search?q=${searchInput}`
+          : API_URL;
+      console.log(url);
+      const response = await axios.get<{products: Product[]}>(url);
       setProducts(response.data.products);
 
       const uniqueCategories = [
         'ALL',
         ...new Set(response.data.products.map(product => product.category)),
       ].sort((a, b) => a.localeCompare(b));
-
+      if(response.data.products.length === 0){
+        setNoProductsFound(true);
+      }else{
+        setNoProductsFound(false);
+      }
+      
       setCategories(uniqueCategories);
       setSelectedCategory('ALL');
       setErrorMessage(null);
@@ -142,18 +156,30 @@ const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const displayedProducts = filterProducts(selectedCategory);
 
-  const renderProductItem = ({ item }: { item: Product }) => (
+  const renderProductItem = ({item}: {item: Product}) => (
     <TouchableOpacity
-      style={[styles.productItem, { backgroundColor: isDarkMode ? '#333' : '#fff' }]} // Update background based on theme
-      onPress={() => navigation.navigate('Detail', { product: item })}>
-      <Image style={styles.productImage} source={{ uri: item.thumbnail }} />
+      style={[
+        styles.productItem,
+        {backgroundColor: isDarkMode ? '#333' : '#fff'},
+      ]} // Update background based on theme
+      onPress={() => navigation.navigate('Detail', {product: item})}>
+      <Image style={styles.productImage} source={{uri: item.thumbnail}} />
       <View style={styles.addtoCart}>
         <Icon name="add" color={'#fff'} onPress={() => handleAddToCart(item)} />
       </View>
       <View style={styles.productDetailsContainer}>
-        <Text style={[styles.productTitle, { color: isDarkMode ? '#fff' : '#000' }]}>{item.title}</Text>
+        <Text
+          style={[styles.productTitle, {color: isDarkMode ? '#fff' : '#000'}]}>
+          {item.title}
+        </Text>
         <View style={styles.productPriceContainer}>
-          <Text style={[styles.productPrice, { color: isDarkMode ? '#fff' : '#000' }]}>${item.price}</Text>
+          <Text
+            style={[
+              styles.productPrice,
+              {color: isDarkMode ? '#fff' : '#000'},
+            ]}>
+            ${item.price}
+          </Text>
           <TouchableOpacity onPress={() => handleToggleFavourite(item)}>
             <RnvIcon
               name={isFavourite(item.id) ? 'heart' : 'heart-o'}
@@ -166,7 +192,7 @@ const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderCategoryButton = ({ item }: { item: string }) => (
+  const renderCategoryButton = ({item}: {item: string}) => (
     <TouchableOpacity
       style={[
         styles.categoryButton,
@@ -199,48 +225,54 @@ const ProductList: React.FC<HomeScreenProps> = ({ navigation }) => {
     </View>
   );
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDarkMode ? '#000' : '#fff' }]}> 
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <View style={styles.searchWrapper}>
-        <TextInput
-          placeholder="Search for products..."
-          value={searchInput}
-          onChangeText={setSearchInput}
-          onSubmitEditing={handleSearch}
-          style={styles.searchInput}
-          accessibilityLabel="Product search input"
-        />
-        <IconMenu
-          icon={<MaterialCommunityIcons name="message" size={25} color={isDarkMode ? 'lightgray' : 'gray'} />}
-          cartItemCount={2}
-        />
-        <IconMenu
-          icon={<MaterialCommunityIcons name="bell" size={25} color={isDarkMode ? 'lightgray' : 'gray'} />}
-          onPress={() => Alert.alert('Bell Pressed!')}
-        />
-        <IconMenu
-          icon={<MaterialCommunityIcons name="cart" size={25} color={isDarkMode ? 'lightgray' : 'gray'} />}
-          cartItemCount={cartItemCount}
-          onPress={() => navigation.navigate('Cart')}
-        />
-      </View>
-      {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
-      {loading ? (
+  const renderContent = () => {
+    if (loading) {
+      return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
         </View>
-      ) : (
+      );
+    }
+
+    if (noProductsFound) {
+      return (
+        <View style={styles.noProductsContainer}>
+          <Text style={styles.noProductsText}>No products found</Text>
+        </View>
+      );
+    } else
+      return (
         <FlatList
           data={displayedProducts}
           renderItem={renderProductItem}
           keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.productList}
           ListHeaderComponent={renderHeader}
+          showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.columnWrapper}
           numColumns={2}
         />
-      )}
+      );
+  };
+
+  console.log(products);
+
+  return (
+    <SafeAreaView
+      style={[
+        styles.container,
+        {backgroundColor: isDarkMode ? '#000' : '#fff'},
+      ]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <SearchBar
+        searchInput={searchInput}
+        setSearchInput={setSearchInput}
+        handleSearch={handleSearch}
+        cartItemCount={cartItemCount}
+        navigation={navigation}
+      />
+      {errorMessage && <Text style={styles.errorMessage}>{errorMessage}</Text>}
+      {renderContent()}
     </SafeAreaView>
   );
 };
@@ -353,6 +385,15 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
     marginTop: 10,
+  },
+  noProductsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noProductsText: {
+    fontSize: 18,
+    color: '#888',
   },
 });
 
